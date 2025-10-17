@@ -12,6 +12,7 @@ import co.kys.classboard.net.WsClient
 import co.kys.classboard.proto.Hello
 import co.kys.classboard.proto.MsgEnvelope
 import co.kys.classboard.proto.Ser
+import co.kys.classboard.proto.DrawPermit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,6 +29,7 @@ class JoinViewModel : ViewModel() {
     // ===== UI / 연결 상태 =====
     val logs = mutableStateListOf<String>()
     val isConnected = mutableStateOf(false)
+    val canDraw = mutableStateOf(false)
 
     // ===== 문서 배경(학생/교사 공통 바인딩용) =====
     val bgBitmap = mutableStateOf<Bitmap?>(null)
@@ -90,7 +92,11 @@ class JoinViewModel : ViewModel() {
                     reconnectJob = null
 
                     // 보드 스트로크 전송 파이프 연결
-                    EventBus.send = { env -> client?.send(Ser.encode(env)) }
+                    EventBus.send = { env ->
+                        val uidNow = lastUserId ?: userId
+                        val env2 = env.copy(userId = uidNow)
+                        client?.send(Ser.encode(env2))
+                    }
 
                     // 핸드셰이크
                     val env = Ser.pack("Hello", userId, Hello("Hi from $userId"))
@@ -132,6 +138,7 @@ class JoinViewModel : ViewModel() {
                     uiLog("Closed")
                     setConnected(false)
                     EventBus.send = null
+                    canDraw.value = false
                     scheduleReconnect()
                 }
             ).also { it.connect() }
@@ -139,6 +146,7 @@ class JoinViewModel : ViewModel() {
             uiLog("connect error: ${t.message ?: t.javaClass.simpleName}")
             setConnected(false)
             EventBus.send = null
+                    canDraw.value = false
             scheduleReconnect()
         }
     }
@@ -172,6 +180,7 @@ class JoinViewModel : ViewModel() {
         runCatching { client?.close() }
         setConnected(false)
         EventBus.send = null
+                    canDraw.value = false
         uiLog("Disconnected (manual)")
     }
 
@@ -181,6 +190,7 @@ class JoinViewModel : ViewModel() {
         reconnectJob?.cancel()
         runCatching { client?.close() }
         EventBus.send = null
+                    canDraw.value = false
     }
 
     // ────────────────────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.kys.classboard.net.WsServer
 import co.kys.classboard.proto.MsgEnvelope
+import co.kys.classboard.proto.DrawPermit
 import co.kys.classboard.proto.Ser
 import co.kys.classboard.proto.ShortPoint
 import co.kys.classboard.proto.StrokeEnd
