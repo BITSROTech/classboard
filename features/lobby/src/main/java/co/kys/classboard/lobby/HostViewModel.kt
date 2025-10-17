@@ -40,7 +40,28 @@ class HostViewModel : ViewModel() {
     // 권한 상태: 교사 및 허용된 사용자
     val teacherIdState = mutableStateOf<String?>(null)
     private val permitSet = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+    val permitted = mutableStateListOf<String>()
     private fun isUserPermitted(uid: String?): Boolean = uid != null && (uid == teacherIdState.value || permitSet.contains(uid))
+
+    // 외부(UI)에서 현재 허용 여부 조회용
+    fun isPermitted(uid: String): Boolean = isUserPermitted(uid)
+
+    // 교사가 Drawer에서 권한 토글 시 호출
+    fun setDrawerAllowed(uid: String, allowed: Boolean) {
+        if (uid == teacherIdState.value) return // 교사 권한은 항상 허용
+        if (allowed) {
+            permitSet.add(uid)
+        } else {
+            permitSet.remove(uid)
+        }
+        // 즉시 해당 사용자에게 허용/회수 브로드캐스트
+        val permit = Ser.pack("DrawPermit", "server", DrawPermit(uid, allowed))
+        server?.broadcast(Ser.encode(permit))
+        viewModelScope.launch(Dispatchers.Main) {
+            permitted.clear(); permitted.addAll(permitSet)
+        }
+        uiLog("permit ${if (allowed) "ON" else "OFF"} -> $uid")
+    }
 
     // ===== 스트로크 상태(서버 보관; 양자화 ShortPoint 원본 저장) =====
     private data class StrokeBuilder(
@@ -87,6 +108,11 @@ class HostViewModel : ViewModel() {
                 val env: MsgEnvelope = Ser.decode(bytes)
 
                 var accept = true
+                val senderUid = connToUser[conn] ?: env.userId
+                if ((env.type == "StrokeStart" || env.type == "StrokeMoveBatch" || env.type == "StrokeEnd") && !isUserPermitted(senderUid)) {
+                    uiLog("DROP ${'$'}{env.type} from ${'$'}senderUid (no permit)")
+                    return@WsServer
+                }
                 when (env.type) {
                     "StrokeStart" -> {
                         val st: StrokeStart = Ser.decode(env.payload!!)

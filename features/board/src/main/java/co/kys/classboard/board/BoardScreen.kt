@@ -437,9 +437,9 @@ fun BoardScreen(
                         currentColor = penColor,
                         currentWidth = currentWidthPx,
                         currentTool = currentTool,
-                        onStrokeStart = { id, c, w, tool -> vm.onLocalStrokeStart(id, c, w, tool) },
-                        onStrokeMoveBatch = { id, pts -> vm.onLocalStrokeMoveBatch(id, pts) },
-                        onStrokeEnd = { id -> vm.onLocalStrokeEnd(id) }
+                        onStrokeStart = { id, c, w, tool -> if (isTeacher || joinVm.canDraw.value) vm.onLocalStrokeStart(id, c, w, tool) }
+                        onStrokeMoveBatch = { id, pts -> if (isTeacher || joinVm.canDraw.value) vm.onLocalStrokeMoveBatch(id, pts) }
+                        onStrokeEnd = { id -> if (isTeacher || joinVm.canDraw.value) vm.onLocalStrokeEnd(id) }
                     )
 
                     if (isTeacher && docUri != null) {
