@@ -56,7 +56,7 @@ fun WhiteboardCanvas(
     Canvas(
         modifier = modifier
             .onSizeChanged { canvasSize = it }
-            .pointerInput(Unit) {
+            .pointerInput(canDraw) {
                 awaitEachGesture {
                     val down = awaitFirstDown()
 

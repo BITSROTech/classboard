@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.util.Base64
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.graphics.scale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -35,6 +36,11 @@ class HostViewModel : ViewModel() {
     val participants = mutableStateListOf<String>()
     private val connToUser = ConcurrentHashMap<WebSocket, String>()
     var clientCount: Int = 0; private set
+
+    // 권한 상태: 교사 및 허용된 사용자
+    val teacherIdState = mutableStateOf<String?>(null)
+    private val permitSet = Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
+    private fun isUserPermitted(uid: String?): Boolean = uid != null && (uid == teacherIdState.value || permitSet.contains(uid))
 
     // ===== 스트로크 상태(서버 보관; 양자화 ShortPoint 원본 저장) =====
     private data class StrokeBuilder(
@@ -80,6 +86,7 @@ class HostViewModel : ViewModel() {
             onBinary = { conn: WebSocket, bytes: ByteArray ->
                 val env: MsgEnvelope = Ser.decode(bytes)
 
+                var accept = true
                 when (env.type) {
                     "StrokeStart" -> {
                         val st: StrokeStart = Ser.decode(env.payload!!)

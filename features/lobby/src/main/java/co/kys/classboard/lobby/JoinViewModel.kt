@@ -109,7 +109,19 @@ class JoinViewModel : ViewModel() {
                         // 스트로크 동기화 파이프 유지
                         EventBus.incoming.tryEmit(env)
 
-                        when (env.type) {
+                        if (env.type == "DrawPermit") {
+                                env.payload?.let { p ->
+                                    val dp: DrawPermit = Ser.decode(p)
+                                    val myId = lastUserId ?: userId
+                                    if (dp.userId == myId) {
+                                        viewModelScope.launch(Dispatchers.Main) {
+                                            canDraw.value = dp.allowed
+                                            uiLog("DrawPermit: allowed=${dp.allowed}")
+                                        }
+                                    }
+                                }
+                                true
+                            } else when (env.type) {
                             "Hello" -> {
                                 env.payload?.let { p ->
                                     val hello: Hello = Ser.decode(p)
